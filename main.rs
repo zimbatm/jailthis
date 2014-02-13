@@ -72,6 +72,7 @@ fn main() {
   };
   if ! c.root_dir.is_dir() {
     fail_usage(program, opts, "root is not a directory");
+    return;
   }
 
   match matches.opt_str("work") {
