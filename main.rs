@@ -52,8 +52,8 @@ fn main() {
   }
 
   let mut c = jail::Config {
-    work_dir: Path::new(~"/tmp"),
     root_dir: Path::new(~"/"),
+    work_dir: os::getcwd(),
     pid_file: None,
     uid: 0,
     mem: 0,
@@ -65,10 +65,7 @@ fn main() {
     Some(m) => {
       c.root_dir = Path::new(m)
     }
-    None => {
-      fail_usage(program, opts, "root is missing");
-      return
-    }
+    None => ()
   };
   if ! c.root_dir.is_dir() {
     fail_usage(program, opts, "root is not a directory");
@@ -79,11 +76,7 @@ fn main() {
     Some(m) => {
       c.work_dir = Path::new(m)
     }
-    None => {
-      // TODO: Make a tmp dir instead
-      fail_usage(program, opts, "work is missing");
-      return;
-    }
+    None => ()
   };
   if ! c.work_dir.is_dir() {
     fail_usage(program, opts, "work is not a directory");
