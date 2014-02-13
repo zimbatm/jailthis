@@ -21,13 +21,13 @@ pub fn run(c: Config) {
 #[cfg(target_os = "macos")]
 pub fn run(c: Config) {
   println!("Dumb jail")
-  println!("root: {}", c.root_dir.as_str());
-  println!("work: {}", c.work_dir.as_str());
+  println!("root: {:?}", c.root_dir.as_str().unwrap());
+  println!("work: {:?}", c.work_dir.as_str().unwrap());
   println!("pid_file: {}", c.pid_file);
   println!("uid: {}", c.uid);
   println!("mem: {}", c.mem);
   println!("cpu: {}", c.cpu);
-  println!("command: {}", c.command.connect(", "));
+  println!("command: {:?}", c.command);
 
   let p = ProcessOptions{
     env: None, // TODO: Change the PATH and stuff
