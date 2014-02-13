@@ -3,6 +3,7 @@ extern mod getopts;
 use getopts::{optopt,optflag,getopts,usage,OptGroup};
 use std::os;
 use std::libc;
+use std::path::Path;
 
 mod jail;
 
@@ -51,8 +52,8 @@ fn main() {
   }
 
   let mut c = jail::Config {
-    work_dir: ~"",
-    root_dir: ~"",
+    work_dir: Path::new(~"/tmp"),
+    root_dir: Path::new(~"/"),
     pid_file: None,
     uid: 0,
     mem: 0,
@@ -60,22 +61,33 @@ fn main() {
     command: ~[],
   };
 
-  c.root_dir = match matches.opt_str("root") {
-    Some(m) => m,
+  match matches.opt_str("root") {
+    Some(m) => {
+      c.root_dir = Path::new(m)
+    }
     None => {
       fail_usage(program, opts, "root is missing");
-      return;
+      return
     }
   };
+  if ! c.root_dir.is_dir() {
+    fail_usage(program, opts, "root is not a directory");
+  }
 
-  c.work_dir = match matches.opt_str("work") {
-    Some(m) => m,
+  match matches.opt_str("work") {
+    Some(m) => {
+      c.work_dir = Path::new(m)
+    }
     None => {
       // TODO: Make a tmp dir instead
       fail_usage(program, opts, "work is missing");
       return;
     }
   };
+  if ! c.work_dir.is_dir() {
+    fail_usage(program, opts, "work is not a directory");
+    return
+  }
 
   if matches.free.is_empty() {
     fail_usage(program, opts, "command is missing");
