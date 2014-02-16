@@ -1,5 +1,5 @@
-jailthis: Runs a command in a jail (or not)
-===========================================
+jailthis: command-line jail
+===========================
 
 Status: WIP
 
