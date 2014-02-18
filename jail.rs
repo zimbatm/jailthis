@@ -4,6 +4,7 @@ pub use jail::macos::run;
 
 mod common {
   use std::path::Path;
+  use std::path::BytesContainer;
 
   pub struct Config {
     root_dir: Path,
@@ -25,12 +26,24 @@ mod common {
     if cmd.is_absolute() || program.contains("/") { // TODO: Use std::path::SEP
       Some(cmd)
     } else {
-      let paths = PATHS.map(|p| Path::new(p.as_bytes()).join(cmd.clone()));
-      match paths.iter().find(|p| root.join(*p).is_file()) {
+      let paths = PATHS.map(|p| join_path(p.as_bytes(), cmd.clone()));
+      match paths.iter().find(|p| join_path(*root.clone(), (**p).container_as_bytes()).is_file()) {
         Some(m) => Some(m.clone()),
         None => None
       }
     }
+  }
+
+  // Like path.join but doesn't replace by p2 if it's absolute
+  pub fn join_path<T1: BytesContainer, T2: BytesContainer>(p1: T1, p2: T2) -> Path {
+    let path1 = Path::new(p1);
+    let path2 = Path::new(p2);
+    let path3 = if path2.is_absolute() {
+      Path::new(path2.container_as_bytes().slice_from(1))
+    } else {
+      path2
+    };
+    path1.join(path3)
   }
 }
 
@@ -41,6 +54,7 @@ pub mod macos {
   use libc::c_int;
   use libc::c_void;
   use jail::common::Config;
+  use jail::common::join_path;
   use std::io::process::ProcessConfig;
 
   //static kSBXProfileNoInternet = "no-internet";
@@ -57,6 +71,11 @@ pub mod macos {
   }
 
   pub fn run(c: ~Config) {
+    let program = match c.program.is_absolute() {
+      true => join_path(c.root_dir.clone(), c.program.clone()),
+      false => join_path(c.work_dir.clone(), c.program.clone()),
+    };
+
     println!("Dumb jail")
     println!("root: {:?}", c.root_dir.as_str().unwrap());
     println!("work: {:?}", c.work_dir.as_str().unwrap());
@@ -64,12 +83,9 @@ pub mod macos {
     println!("mem: {}", c.mem);
     println!("cpu: {}", c.cpu);
     println!("net: {}", c.net);
-    println!("program: {:?}", c.program);
+    println!("program: {:?}", program.as_str().unwrap());
 
-    let program = match c.program.is_absolute() {
-      true => c.root_dir.join(c.program.clone()),
-      false => c.work_dir.join(c.program.clone()),
-    };
+    
 
     // if !c.net {
     //   kSBXProfileNoNetwork.to_c_str().with_ref(|profile| {
