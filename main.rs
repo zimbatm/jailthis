@@ -1,4 +1,5 @@
-#[no_uv] extern mod native;
+#[no_uv];
+extern mod native;
 extern mod getopts;
 
 use getopts::{optopt,optflag,getopts,usage,OptGroup};
@@ -38,7 +39,6 @@ fn main() {
     optopt("u",  "user", "Run the command under. Disabled on suid exec", "NAME"),
     optopt("m",  "mem",  "Max memory. Unlimited (0) by default", "BYTES"),
     optopt("c",  "cpu",  "How many cpu shares to allocate. Unlimited (0) by default.", "NUM"),
-    optopt("p",  "pid",  "Write the command's pid there if specified", "PATH"),
     optflag("h", "help", "Prints this help"),
   ];
 
@@ -55,35 +55,20 @@ fn main() {
     return;
   }
 
-  let mut c = ~jail::Config {
-    root_dir: Path::new(~"/"),
-    work_dir: os::getcwd(),
-    pid_file: None,
-    uid: 0,
-    mem: 0,
-    cpu: 0,
-    net: true,
-    command: ~[],
+  let root_dir = match matches.opt_str("root") {
+    Some(m) => Path::new(m),
+    None => Path::new(~"/")
   };
-
-  match matches.opt_str("root") {
-    Some(m) => {
-      c.root_dir = Path::new(m)
-    }
-    None => ()
-  };
-  if ! c.root_dir.is_dir() {
+  if ! root_dir.is_dir() {
     fail_usage(program, opts, "root is not a directory");
     return;
   }
 
-  match matches.opt_str("work") {
-    Some(m) => {
-      c.work_dir = Path::new(m)
-    }
-    None => ()
+  let work_dir = match matches.opt_str("work") {
+    Some(m) => Path::new(m),
+    None => os::getcwd()
   };
-  if ! c.work_dir.is_dir() {
+  if ! work_dir.is_dir() {
     fail_usage(program, opts, "work is not a directory");
     return
   }
@@ -93,34 +78,50 @@ fn main() {
     return;
   }
 
-  c.uid = unsafe { libc::getuid() };
-  if c.uid == 0 {
-    match matches.opt_str("user") {
-      Some(m) => {
+  let uid = unsafe { libc::getuid() };
+  match matches.opt_str("user") {
+    Some(m) => {
+      // Only change uid if we're root. suid only allows current user.
+      if uid == 0 {
         // TODO: resolve the uid for that user
         println!("user: {}", m);
+      } else {
+        println!("ignoring user option");
       }
-      None => () // keep root as the runner
     }
-  } else {
-    match matches.opt_str("user") {
-      Some(_) => println!("ignoring user option"),
-      None => ()
-    }
+    None => ()
   }
 
-  c.mem = match matches.opt_str("mem") {
+  let mem = match matches.opt_str("mem") {
     Some(m) => from_str::<uint>(m).unwrap(),
     None => 0
   };
 
-  c.cpu = match matches.opt_str("cpu") {
+  let cpu = match matches.opt_str("cpu") {
     Some(m) => from_str::<uint>(m).unwrap(),
     None => 0
   };
 
-  c.pid_file = matches.opt_str("pid");
-  c.command = matches.free;
+  let args = matches.free;
+
+  let program = match jail::look_path(args[0].clone(), ~root_dir.clone()) {
+    Some(m) => m,
+    None => {
+      fail_usage(program, opts, "program not found");
+      return
+    }
+  };
+
+  let c = ~jail::Config {
+    root_dir: root_dir,
+    work_dir: work_dir,
+    uid: 0,
+    mem: 0,
+    cpu: 0,
+    net: true,
+    program: program,
+    args: args,
+  };
 
     /* do_work(root_dir, work_dir); */
   jail::run(c)

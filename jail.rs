@@ -1,17 +1,36 @@
-pub use jail::macos::run;
 pub use jail::common::Config;
+pub use jail::common::look_path;
+pub use jail::macos::run;
 
 mod common {
   use std::path::Path;
+
   pub struct Config {
     root_dir: Path,
     work_dir: Path,
-    pid_file: Option<~str>,
     uid: u32,
     mem: uint,
     cpu: uint,
     net: bool,
-    command: ~[~str],
+    program: Path,
+    args: ~[~str],
+  }
+
+  static PATHS: [&'static str, .. 4] = ["/bin", "/sbin", "/usr/bin", "/usr/sbin"];
+
+  // Tries to find an executable
+  // TODO: Look for the executable bit for the select user/group
+  pub fn look_path(program: ~str, root: ~Path) -> Option<Path> {
+    let cmd = Path::new(program.clone());
+    if cmd.is_absolute() || program.contains("/") { // TODO: Use std::path::SEP
+      Some(cmd)
+    } else {
+      let paths = PATHS.map(|p| Path::new(p.as_bytes()).join(cmd.clone()));
+      match paths.iter().find(|p| root.join(*p).is_file()) {
+        Some(m) => Some(m.clone()),
+        None => None
+      }
+    }
   }
 }
 
@@ -21,7 +40,6 @@ pub mod macos {
   use libc::c_char;
   use libc::c_int;
   use libc::c_void;
-  use libc::uintptr_t;
   use jail::common::Config;
   use std::io::process::ProcessConfig;
 
@@ -33,41 +51,44 @@ pub mod macos {
 
   static SANDBOX_NAMED: uint64_t = 1;
 
-  static PATHS: [&'static str, .. 4] = ["bin", "sbin", "usr/bin", "usr/sbin"];
-
   extern {
-    // FIXME: **char type for errorbuf
-    fn sandbox_init(profile: *c_char, flags: uint64_t, errorbuf: uintptr_t) -> c_int;
+    fn sandbox_init(profile: *c_char, flags: uint64_t, errorbuf: *mut *mut c_char) -> c_int;
     fn sandbox_free_error(errorbuf: *c_char) -> c_void;
-  }
-
-  pub fn prepare(c: &Config) {
-    if !c.net {
-      kSBXProfileNoNetwork.to_c_str().with_ref(|profile| {
-        unsafe { sandbox_init(profile, 0, 0 as uintptr_t) }
-      });
-    }
   }
 
   pub fn run(c: ~Config) {
     println!("Dumb jail")
     println!("root: {:?}", c.root_dir.as_str().unwrap());
     println!("work: {:?}", c.work_dir.as_str().unwrap());
-    println!("pid_file: {}", c.pid_file);
     println!("uid: {}", c.uid);
     println!("mem: {}", c.mem);
     println!("cpu: {}", c.cpu);
-    println!("command: {:?}", c.command);
+    println!("net: {}", c.net);
+    println!("program: {:?}", c.program);
 
-    prepare(c);
+    let program = match c.program.is_absolute() {
+      true => c.root_dir.join(c.program.clone()),
+      false => c.work_dir.join(c.program.clone()),
+    };
 
-    /* let p = ProcessConfig{ */
-    /*   program: "TODO", */
-    /*   args: [], */
-    /*   env: None, // TODO: Change the PATH and stuff */
-    /*   cwd: c.work_dir.as_str(), */
-    /*   io: [], */
-    /* }; */
+    // if !c.net {
+    //   kSBXProfileNoNetwork.to_c_str().with_ref(|profile| {
+    //     unsafe {
+    //       let errorbuf: *mut *mut c_char = (); // FIXME: null pointers FTW
+    //       if sandbox_init(profile, 0, errorbuf) } < 0 {
+    //         fail!(*errorbuf)
+    //       }
+    //     }
+    //   });
+    // }
+
+    // let p = ProcessConfig{ 
+    //   program: program.as_str().unwrap(), 
+    //   args: c.args, 
+    //   env: None, // TODO: Change the PATH and stuff 
+    //   cwd: c.work_dir.as_str(), 
+    //   io: [], 
+    // }; 
 
     
     // TODO: See how to create a new process group
