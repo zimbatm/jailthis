@@ -1,3 +1,4 @@
+#[no_uv] extern mod native;
 extern mod getopts;
 
 use getopts::{optopt,optflag,getopts,usage,OptGroup};
@@ -25,6 +26,9 @@ fn fail_usage(program: &str, opts: &[OptGroup], error: &str) {
   os::set_exit_status(2);
 }
 
+#[start]
+fn start(argc: int, argv: **u8) -> int { native::start(argc, argv, main) }
+
 fn main() {
   let args = os::args();
   let program = args[0].clone();
@@ -51,13 +55,14 @@ fn main() {
     return;
   }
 
-  let mut c = jail::Config {
+  let mut c = ~jail::Config {
     root_dir: Path::new(~"/"),
     work_dir: os::getcwd(),
     pid_file: None,
     uid: 0,
     mem: 0,
     cpu: 0,
+    net: true,
     command: ~[],
   };
 
