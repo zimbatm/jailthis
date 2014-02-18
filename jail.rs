@@ -36,14 +36,9 @@ mod common {
 
   // Like path.join but doesn't replace by p2 if it's absolute
   pub fn join_path<T1: BytesContainer, T2: BytesContainer>(p1: T1, p2: T2) -> Path {
-    let path1 = Path::new(p1);
-    let path2 = Path::new(p2);
-    let path3 = if path2.is_absolute() {
-      Path::new(path2.container_as_bytes().slice_from(1))
-    } else {
-      path2
-    };
-    path1.join(path3)
+    let mut p = Path::new(p1).join("foo");
+    p.set_filename(p2);
+    p
   }
 }
 
