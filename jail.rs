@@ -44,6 +44,10 @@ mod common {
       Path::new(p1 + "/".as_bytes() + p2)
     }
   }
+
+  pub fn env_path(root: &str) -> ~str {
+    PATHS.map(|x| root + *x).connect(":")
+  }
 }
 
 #[cfg(target_os = "macos")]
@@ -54,6 +58,7 @@ pub mod macos {
   use libc::c_void;
   use jail::common::Config;
   use jail::common::join_path;
+  use jail::common::env_path;
   use std::io::process::ProcessConfig;
 
   //static kSBXProfileNoInternet = "no-internet";
@@ -75,6 +80,15 @@ pub mod macos {
       false => join_path(c.work_dir.clone(), c.program.clone()),
     };
 
+    let pwd = c.work_dir.clone().as_str().unwrap().to_owned();
+
+    let env = [
+      (~"HOME", pwd.clone()),
+      (~"LC_ALL", ~"C"),
+      (~"PATH", env_path(c.root_dir.clone().as_str().unwrap().to_owned())),
+      (~"PWD", pwd.clone()),
+    ];
+
     println!("Dumb jail")
     println!("root: {:?}", c.root_dir.as_str().unwrap());
     println!("work: {:?}", c.work_dir.as_str().unwrap());
@@ -83,8 +97,6 @@ pub mod macos {
     println!("cpu: {}", c.cpu);
     println!("net: {}", c.net);
     println!("program: {:?}", program.as_str().unwrap());
-
-    
 
     // if !c.net {
     //   kSBXProfileNoNetwork.to_c_str().with_ref(|profile| {
@@ -97,15 +109,14 @@ pub mod macos {
     //   });
     // }
 
-    // let p = ProcessConfig{ 
-    //   program: program.as_str().unwrap(), 
-    //   args: c.args, 
-    //   env: None, // TODO: Change the PATH and stuff 
-    //   cwd: c.work_dir.as_str(), 
-    //   io: [], 
-    // }; 
+    let p = ProcessConfig{
+      program: program.as_str().unwrap(),
+      args: c.args,
+      env: Some(&env),
+      cwd: Some(&c.work_dir),
+      detach: false,
+    };
 
-    
     // TODO: See how to create a new process group
   }
 }

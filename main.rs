@@ -1,6 +1,6 @@
 #[no_uv];
-extern mod native;
-extern mod getopts;
+extern crate native;
+extern crate getopts;
 
 use getopts::{optopt,optflag,getopts,usage,OptGroup};
 use std::os;
