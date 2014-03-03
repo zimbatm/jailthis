@@ -15,9 +15,14 @@ import (
 func run(c *Config) (proc Process, err error) {
 	argv0 := lookPath(c.Argv[0], c.Root, c.Work, c.Env["PATH"])
 
-	addPrefix(c.Env, "PATH", c.Root)
 	c.Env["HOME"] = c.Work
 	c.Env["PWD"] = c.Work
+	addPrefix(c.Env, "PATH", c.Root)
+	addPrefix(c.Env, "CPATH", c.Root)
+	addPrefix(c.Env, "LD_LIBRARY_PATH", c.Root)
+	addPrefix(c.Env, "LIBRARY_PATH", c.Root)
+	addPrefix(c.Env, "MANPATH", c.Root)
+	addPrefix(c.Env, "PKG_CONFIG_PATH", c.Root)
 
 	attr := &syscall.ProcAttr{
 		Dir:   c.Work,
