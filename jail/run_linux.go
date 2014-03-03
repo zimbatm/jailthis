@@ -22,6 +22,8 @@ const (
 //
 // It just behaves like the jailed version except that it's easy to escape.
 func run(c *Config) (proc Process, err error) {
+	var creds *syscall.Credential
+
 	argv0 := lookPath(c.Argv[0], c.Root, c.Work, c.Env["PATH"])
 
 	c.Env["HOME"] = HOME_DIR
@@ -29,22 +31,25 @@ func run(c *Config) (proc Process, err error) {
 
 	uid, _ := strconv.Atoi(c.User.Uid)
 	gid, _ := strconv.Atoi(c.User.Gid)
+	if uid != syscall.Getuid() || gid != syscall.Getgid() {
+		creds = &syscall.Credential{
+			uint32(uid),
+			uint32(gid),
+			nil,
+		}
+	}
 	attr := &syscall.ProcAttr{
 		Dir:   c.Work,
 		Env:   c.Env.Cenv(),
 		Files: []uintptr{0, 1, 2},
 		Sys: &syscall.SysProcAttr{
-			Chroot: c.Root,
-			Credential: &syscall.Credential{
-				uint32(uid),
-				uint32(gid),
-				nil,
-			},
-			Ptrace:  true, // Used to pause execution to work around a concurrency issue
-			Setsid:  false,
-			Setpgid: true,
-			Setctty: false,
-			Noctty:  false,
+			Chroot:     c.Root,
+			Credential: creds,
+			Ptrace:     true, // Used to pause execution to work around a concurrency issue
+			Setsid:     false,
+			Setpgid:    true,
+			Setctty:    false,
+			Noctty:     false,
 			/* Linux only */
 			// Ctty: int
 			// TODO: How to cleanup sub-processes ?

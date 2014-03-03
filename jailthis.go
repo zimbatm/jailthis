@@ -23,6 +23,7 @@ func main() {
 	flag.StringVar(&c.Root, "root", c.Root, "")
 	flag.StringVar(&c.Work, "work", c.Work, "")
 	flag.StringVar(&username, "user", c.User.Username, "only works when running as root (not in suid)")
+	flag.Var(c.Env, "env", "adds environment variable k=v")
 	flag.Parse()
 
 	c.Argv = flag.Args()

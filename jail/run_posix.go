@@ -14,6 +14,8 @@ import (
 //
 // It just behaves like the jailed version except that it's easy to escape.
 func run(c *Config) (proc Process, err error) {
+	var creds *syscall.Credential
+
 	argv0 := lookPath(c.Argv[0], c.Root, c.Work, c.Env["PATH"])
 
 	c.Env["HOME"] = c.Work
@@ -28,22 +30,25 @@ func run(c *Config) (proc Process, err error) {
 
 	uid, _ := strconv.Atoi(c.User.Uid)
 	gid, _ := strconv.Atoi(c.User.Gid)
+	if uid != syscall.Getuid() || gid != syscall.Getgid() {
+		creds = &syscall.Credential{
+			uint32(uid),
+			uint32(gid),
+			nil,
+		}
+	}
 	attr := &syscall.ProcAttr{
 		Dir:   c.Work,
 		Env:   c.Env.Cenv(),
 		Files: []uintptr{0, 1, 2},
 		Sys: &syscall.SysProcAttr{
-			Chroot: "",
-			Credential: &syscall.Credential{
-				uint32(uid),
-				uint32(gid),
-				nil,
-			},
-			Ptrace:  false,
-			Setsid:  false,
-			Setpgid: true, // Create a new process group
-			Setctty: false,
-			Noctty:  false,
+			Chroot:     "",
+			Credential: creds,
+			Ptrace:     false,
+			Setsid:     false,
+			Setpgid:    true, // Create a new process group
+			Setctty:    false,
+			Noctty:     false,
 		},
 	}
 
