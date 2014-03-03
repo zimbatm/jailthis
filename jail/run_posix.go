@@ -66,6 +66,8 @@ func (self *PosixProcess) Wait() (int, error) {
 	//var rs syscall.Rusage
 	var err error
 	_, err = syscall.Wait4(self.pid, &ws, 0, nil)
+	// Cleanup
+	self.Kill()
 	return ws.ExitStatus(), err
 }
 

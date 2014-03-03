@@ -79,7 +79,6 @@ func main() {
 	}
 
 	signal.Stop(signals)
-	proc.Kill()
 
 	os.Exit(status)
 }
