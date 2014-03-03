@@ -1,11 +1,12 @@
 package jail
 
 import (
-	"syscall"
+	"os"
 )
 
 type Process interface {
 	Kill() error
-	Signal(syscall.Signal) error
-	Wait() (syscall.WaitStatus, *syscall.Rusage, error)
+	Signal(os.Signal) error
+	// TODO: Build an abstraction on top of the syscall package
+	Wait() (int, error)
 }

@@ -57,16 +57,16 @@ func (self *PosixProcess) Kill() error {
 	return syscall.Kill(-self.pid, syscall.SIGKILL)
 }
 
-func (self *PosixProcess) Signal(s syscall.Signal) error {
-	return syscall.Kill(self.pid, s)
+func (self *PosixProcess) Signal(s os.Signal) error {
+	return syscall.Kill(self.pid, s.(syscall.Signal))
 }
 
-func (self *PosixProcess) Wait() (syscall.WaitStatus, *syscall.Rusage, error) {
+func (self *PosixProcess) Wait() (int, error) {
 	var ws syscall.WaitStatus
-	var rs syscall.Rusage
+	//var rs syscall.Rusage
 	var err error
-	_, err = syscall.Wait4(self.pid, &ws, 0, &rs)
-	return ws, &rs, err
+	_, err = syscall.Wait4(self.pid, &ws, 0, nil)
+	return ws.ExitStatus(), err
 }
 
 func lookPath(command string, root string, work string, paths []string) string {

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"os/user"
 	"strconv"
 )
@@ -52,12 +53,34 @@ func main() {
 		panic(err)
 	}
 
-	ws, _, err := proc.Wait()
+	signals := make(chan os.Signal)
+	signal.Notify(signals)
+	// Forward signals to the child process
+	go func() {
+		kill := false
+		for {
+			s := <-signals
+			// Force-kill on second interrupt
+			if s == os.Interrupt && kill {
+				proc.Kill()
+				return
+			} else {
+				if s == os.Interrupt {
+					kill = true
+				}
+				proc.Signal(s)
+			}
+		}
+	}()
+
+	status, err := proc.Wait()
 	if err != nil {
 		panic(err)
 	}
 
-	os.Exit(ws.ExitStatus())
+	signal.Stop(signals)
+
+	os.Exit(status)
 }
 
 func isDir(path string) {
