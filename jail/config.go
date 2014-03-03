@@ -2,13 +2,13 @@ package jail
 
 import (
 	"os"
+	"os/user"
 )
 
 type Config struct {
 	Root string
 	Work string
-	Path []string
-	Uid  int
+	User *user.User
 	Env  Env
 	Argv []string
 }
@@ -18,10 +18,11 @@ func NewConfig() *Config {
 	if err != nil {
 		cwd = "/"
 	}
+	user, _ := user.Current()
 	return &Config{
 		Root: "/",
 		Work: cwd,
-		Uid:  os.Getuid(),
+		User: user,
 		Env: Env{
 			"PATH":   "/bin:/usr/bin",
 			"LC_ALL": "C",

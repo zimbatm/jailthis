@@ -5,6 +5,7 @@ package jail
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 )
@@ -25,18 +26,24 @@ func run(c *Config) (proc Process, err error) {
 	addPrefix(c.Env, "MANPATH", c.Root)
 	addPrefix(c.Env, "PKG_CONFIG_PATH", c.Root)
 
+	uid, _ := strconv.Atoi(c.User.Uid)
+	gid, _ := strconv.Atoi(c.User.Gid)
 	attr := &syscall.ProcAttr{
 		Dir:   c.Work,
 		Env:   c.Env.Cenv(),
 		Files: []uintptr{0, 1, 2},
 		Sys: &syscall.SysProcAttr{
-			Chroot:     "",
-			Credential: nil,
-			Ptrace:     false,
-			Setsid:     false,
-			Setpgid:    true, // Create a new process group
-			Setctty:    false,
-			Noctty:     false,
+			Chroot: "",
+			Credential: &syscall.Credential{
+				uint32(uid),
+				uint32(gid),
+				nil,
+			},
+			Ptrace:  false,
+			Setsid:  false,
+			Setpgid: true, // Create a new process group
+			Setctty: false,
+			Noctty:  false,
 		},
 	}
 
