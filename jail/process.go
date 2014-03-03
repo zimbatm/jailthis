@@ -7,5 +7,5 @@ import (
 type Process interface {
 	Kill() error
 	Signal(syscall.Signal) error
-	Wait() (*syscall.WaitStatus, error)
+	Wait() (syscall.WaitStatus, *syscall.Rusage, error)
 }

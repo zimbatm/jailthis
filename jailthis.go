@@ -52,9 +52,12 @@ func main() {
 		panic(err)
 	}
 
-	proc.Wait()
+	ws, _, err := proc.Wait()
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Println("WOOT")
+	os.Exit(ws.ExitStatus())
 }
 
 func isDir(path string) {
