@@ -52,6 +52,6 @@ See also
 * [docker](http://docker.io)
 * [jailkit](http://olivier.sessink.nl/jailkit/)
 * [FreeBSD jail](http://www.freebsd.org/cgi/man.cgi?query=jail&format=html)
-* [lxns](https://github.com/tobert/lnxns)
+* [lnxns](https://github.com/tobert/lnxns)
 
 

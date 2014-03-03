@@ -1,6 +1,7 @@
 package jail
 
 import (
+	"../cgroup"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -10,6 +11,11 @@ import (
 
 const (
 	HOME_DIR = "/home"
+	PROC_DIR = "/proc"
+	// TODO: disable network ? | syscall.CLONE_NEWNET
+	CLONE_FLAGS = syscall.CLONE_NEWNS | syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC
+
+	HOME_MOUNT_OPTS = syscall.MS_BIND | syscall.MS_NOEXEC
 )
 
 // A default non-secure implementation for common posix platforms
@@ -47,23 +53,54 @@ func run(c *Config) (proc Process, err error) {
 		},
 	}
 
+	// New filesystem namespace
+	if err = syscall.Unshare(CLONE_FLAGS); err != nil {
+		return
+	}
+
+	// Mount the work directory
+	if err = syscall.Mount(c.Work, filepath.Join(c.Root, HOME_DIR[1:]), "none", HOME_MOUNT_OPTS, ""); err != nil {
+		return
+	}
+
+	// Mount the proc filesystem
+	procDir := filepath.Join(c.Root, PROC_DIR[1:])
+	if isDir(procDir) && c.Root != "/" {
+		if err = syscall.Mount(c.Work, procDir, "proc", 0, ""); err != nil {
+			return
+		}
+	}
+
+	g, err := cgroup.New(cgroup.CPUACCT)
+	if err != nil {
+		return
+	}
+	defer g.Teardown()
+
 	pid, err := syscall.ForkExec(argv0, c.Argv, attr)
 	if err != nil {
 		return
 	}
 
-	proc = &LinuxProcess{pid}
+	if err = g.Add(pid); err != nil {
+		return
+	}
 
-	return
+	if err = syscall.PtraceDetach(pid); err != nil {
+		return
+	}
+
+	return &LinuxProcess{pid, g}, nil
 }
 
 type LinuxProcess struct {
-	pid int
+	pid    int
+	cgroup cgroup.GroupMap
 }
 
 func (self *LinuxProcess) Kill() error {
-	// Send the kill to the whole process group
-	return syscall.Kill(-self.pid, syscall.SIGKILL)
+	self.cgroup.Teardown()
+	return nil
 }
 
 func (self *LinuxProcess) Signal(s os.Signal) error {

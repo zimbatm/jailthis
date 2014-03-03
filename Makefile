@@ -1,7 +1,8 @@
 
-jailthis: *.go jail/*.go
+jailthis: *.go cgroup/*.go jail/*.go
 	go fmt .
-	go fmt ./jail
+	go fmt ./cgroup/
+	go fmt ./jail/
 	go build -o $@
 
 clean:

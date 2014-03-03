@@ -28,7 +28,7 @@ func main() {
 	c.Argv = flag.Args()
 
 	_, err = strconv.Atoi(username)
-	if err != nil {
+	if err == nil {
 		c.User, err = user.LookupId(username)
 	} else {
 		c.User, err = user.Lookup(username)
