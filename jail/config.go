@@ -21,8 +21,10 @@ func NewConfig() *Config {
 	return &Config{
 		Root: "/",
 		Work: cwd,
-		Path: []string{"/bin", "/usr/bin"},
 		Uid:  os.Getuid(),
-		Env:  make(Env),
+		Env: Env{
+			"PATH":   "/bin:/usr/bin",
+			"LC_ALL": "C",
+		},
 	}
 }

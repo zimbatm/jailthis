@@ -30,11 +30,6 @@ func Run(c *Config) (proc Process, err error) {
 		return
 	}
 
-	// Make sure processes have a language flag
-	if _, ok := c.Env["LC_ALL"]; !ok {
-		c.Env["LC_ALL"] = "C"
-	}
-
 	return run(c)
 }
 

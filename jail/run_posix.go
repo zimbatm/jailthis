@@ -13,13 +13,9 @@ import (
 //
 // It just behaves like the jailed version except that it's easy to escape.
 func run(c *Config) (proc Process, err error) {
-	argv0 := lookPath(c.Argv[0], c.Root, c.Work, c.Path)
+	argv0 := lookPath(c.Argv[0], c.Root, c.Work, c.Env["PATH"])
 
-	paths := make([]string, len(c.Path))
-	for i, p := range c.Path {
-		paths[i] = filepath.Join(c.Root, p)
-	}
-	c.Env["PATH"] = strings.Join(paths, string(os.PathListSeparator))
+	addPrefix(c.Env, "PATH", c.Root)
 	c.Env["HOME"] = c.Work
 	c.Env["PWD"] = c.Work
 
@@ -71,7 +67,7 @@ func (self *PosixProcess) Wait() (int, error) {
 	return ws.ExitStatus(), err
 }
 
-func lookPath(command string, root string, work string, paths []string) string {
+func lookPath(command string, root string, work string, path string) string {
 	command = filepath.Clean(command)
 
 	if command[0:0] == "/" {
@@ -82,8 +78,8 @@ func lookPath(command string, root string, work string, paths []string) string {
 		return filepath.Join(work, command)
 	}
 
-	for _, path := range paths {
-		x := filepath.Join(root, path[1:], command)
+	for _, p := range filepath.SplitList(path) {
+		x := filepath.Join(root, p[1:], command)
 		if isExecutable(x) {
 			return x
 		}
@@ -91,4 +87,20 @@ func lookPath(command string, root string, work string, paths []string) string {
 
 	// Not found
 	return command
+}
+
+func addPrefix(env Env, key string, prefix string) {
+	v, ok := env[key]
+	if !ok {
+		return
+	}
+	p1 := filepath.SplitList(v)
+	p2 := make([]string, len(p1))
+	for i, p := range p1 {
+		if p[0:0] == "/" {
+			p = p[1:]
+		}
+		p2[i] = filepath.Join(prefix, p)
+	}
+	env[key] = strings.Join(p2, string(os.PathListSeparator))
 }

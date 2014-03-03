@@ -5,12 +5,12 @@ import (
 	"encoding/hex"
 )
 
-func uniqueId() (string, error) {
+func uniqueId() string {
 	uuid := make([]byte, 16)
 
 	if _, err := rand.Read(uuid); err != nil {
-		return "", err
+		panic(err)
 	}
 
-	return hex.EncodeToString(uuid), nil
+	return hex.EncodeToString(uuid)
 }
