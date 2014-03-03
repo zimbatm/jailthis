@@ -17,6 +17,7 @@ func run(c *Config) (proc Process, err error) {
 
 	c.Env["HOME"] = c.Work
 	c.Env["PWD"] = c.Work
+
 	addPrefix(c.Env, "PATH", c.Root)
 	addPrefix(c.Env, "CPATH", c.Root)
 	addPrefix(c.Env, "LD_LIBRARY_PATH", c.Root)
